@@ -11,7 +11,7 @@ require("dotenv").config();
 // CORS Middleware
 app.use(
     cors({
-        origin: "http://localhost:3000", // Allow requests from this origin
+        origin: "https://chatapp-4ilglsiqv-muhammad-rohans-projects-9a6e28d9.vercel.app", // Allow requests from this origin
         credentials: true, // Allow credentials
     })
 );
@@ -33,14 +33,15 @@ mongoose.connect(process.env.MONGO_URI, {
 });
 
 // Start Server
-const server = app.listen(process.env.PORT, () => {
-    console.log(`Server started at PORT ${process.env.PORT}`);
+const PORT = process.env.PORT || 5000; // Use Render’s port or default to 5000 for local
+server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
 
 // Socket.IO Configuration
 const io = socket(server, {
     cors: {
-        origin: "http://localhost:3000", // Remove the trailing slash
+        origin: "https://chatapp-4ilglsiqv-muhammad-rohans-projects-9a6e28d9.vercel.app", // Remove the trailing slash
         credentials: true,
     },
 });

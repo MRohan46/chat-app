@@ -1,4 +1,4 @@
-export const host = "http://localhost:5000";
+export const host = "https://chatapp-4ilglsiqv-muhammad-rohans-projects-9a6e28d9.vercel.app"
 export const registerRoute = `${host}/api/auth/register`
 export const loginRoute = `${host}/api/auth/login`
 export const setAvatarRoute = `${host}/api/auth/setAvatar`
