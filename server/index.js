@@ -34,10 +34,9 @@ mongoose.connect(process.env.MONGO_URI, {
 
 // Start Server
 const PORT = process.env.PORT || 5000; // Use Render’s port or default to 5000 for local
-server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
-
+const server = app.listen(process.env.PORT, () =>
+  console.log(`Server started on ${process.env.PORT}`)
+);
 // Socket.IO Configuration
 const io = socket(server, {
     cors: {
