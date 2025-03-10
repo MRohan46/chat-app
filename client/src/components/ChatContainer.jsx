@@ -68,7 +68,9 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
     }, [currentChat]);
     
     
-    
+    useEffect(()=>{
+        setLoading(true);
+    }, [currentChat])
 
     useEffect(() => {
         if (!socket.current || !currentChat) return;
