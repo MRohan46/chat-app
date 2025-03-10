@@ -105,25 +105,36 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
 
     // Handle sending messages
     const handleSendMsg = async (msg) => {
+        if (!msg.trim()) return;
+    
+        // ✅ 1. Instantly update UI for sender
+        const newMessage = { 
+            fromSelf: true, 
+            message: msg, 
+            createdAt: new Date().toISOString() 
+        };
+        setMessages((prev) => [...prev, newMessage]);
+    
         try {
+            // ✅ 2. Send message to the server
             await axios.post(sendMessageRoute, {
                 from: currentUser._id,
                 to: currentChat._id,
                 message: msg,
             });
-
+    
+            // ✅ 3. Emit message via socket (receiver will get this)
             socket.current.emit("send-msg", {
-                to: currentChat._id,
                 from: currentUser._id,
+                to: currentChat._id,
                 message: msg,
             });
-            // Update local state immediately
-            setMessages((prev) => [...prev, { fromSelf: true, message: msg, createdAt: new Date().toISOString() }]);
+    
         } catch (error) {
             console.error("Error sending message:", error);
         }
     };
-
+    
     // Listen for incoming messages
     useEffect(() => {
         if (socket.current && currentChat) {
