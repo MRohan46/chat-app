@@ -11,7 +11,7 @@ require("dotenv").config();
 // CORS Middleware
 app.use(
     cors({
-        origin: "https://chatapp-river-waves.vercel.app", // Allow requests from this origin
+        origin: "http://localhost:3000", // Allow requests from this origin
         credentials: true, // Allow credentials
     })
 );
@@ -33,14 +33,14 @@ mongoose.connect(process.env.MONGO_URI, {
 });
 
 // Start Server
-const PORT = process.env.PORT || 5000; // Use Render’s port or default to 5000 for local
-const server = app.listen(process.env.PORT, () =>
-  console.log(`Server started on ${process.env.PORT}`)
+const PORT = 5000; // Use Render’s port or default to 5000 for local
+const server = app.listen(PORT, () =>
+  console.log(`Server started on ${PORT}`)
 );
 // Socket.IO Configuration
 const io = socket(server, {
     cors: {
-        origin: "https://chatapp-river-waves.vercel.app", // Remove the trailing slash
+        origin: "http://localhost:3000", // Remove the trailing slash
         credentials: true,
     },
 });
@@ -72,6 +72,10 @@ io.on("connection", (socket) => {
             socket.to(sendUserSocket).emit("msg-receive", {
                 message: data.message,
                 from: data.from, // Include the sender's ID
+                replyTo: data.replyTo 
+                ? { message: data.replyTo.message, sender: data.replyTo.sender } 
+                : null, // ✅ Make sure replyTo has both message & sender
+                messageId: data.messageId ? data.messageId : null,
             });
         }
     });

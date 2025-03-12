@@ -183,7 +183,7 @@ const Container = styled.div`
       align-items: center;
       background-color: #181818;
       color: white;
-      font-family: 'Noto Color Emoji', sans-serif;
+      
       padding: 4px 12px 4px;
       border: none;
       font-size: 0.8rem;
@@ -205,7 +205,7 @@ const Container = styled.div`
     margin-left: 10px;
     color: white;
     font-weight: 800;
-    font-family: 'Noto Color Emoji', sans-serif;
+    
   
   }
 }

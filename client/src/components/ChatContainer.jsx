@@ -13,11 +13,120 @@ import moment from "moment";
 export default function ChatContainer({ currentChat, currentUser, socket }) {
     const [messages, setMessages] = useState([]);
     const [arrivalMessage, setArrivalMessage] = useState(null);
-    const scrollRef = useRef();
     const [loading, setLoading] = useState(true);
     const [status, setStatus] = useState(statusOffline);
     //const [typing, setTyping] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
+    const [aReplyMessage, setAReplyMessage] = useState(null);
+    const [replyMessage, setReplyMessage] = useState(null);
+    const scrollRef = useRef(null);
+    const scrollRef2 = useRef();
+    const chatContainerRef = useRef(null);
+    const [isAtBottom, setIsAtBottom] = useState(true);
+    
+
+    // Save scroll position when leaving chat
+    useEffect(() => {
+        return () => {
+            localStorage.setItem(`scrollPosition-${currentChat._id}`, chatContainerRef.current?.scrollTop || 0);
+        };
+    }, [currentChat]);
+
+ 
+    useEffect(() => {
+        const restoreScroll = () => {
+            const savedScroll = localStorage.getItem(`scrollPosition-${currentChat._id}`);
+            const container = chatContainerRef.current;
+            if (!container || savedScroll === null) return;
+    
+            const scrollTarget = parseInt(savedScroll, 10);
+    
+            let start = container.scrollTop;
+            let duration = 300; // 0.3s
+            let startTime = performance.now();
+    
+            const animateScroll = (timestamp) => {
+                let elapsed = timestamp - startTime;
+                let progress = Math.min(elapsed / duration, 1);
+                let easeProgress = progress < 0.5 
+                    ? 2 * progress * progress 
+                    : 1 - Math.pow(-2 * progress + 2, 2) / 2; // Ease-in-out effect
+                
+                container.scrollTop = start + (scrollTarget - start) * easeProgress;
+    
+                if (progress < 1) {
+                    requestAnimationFrame(animateScroll);
+                }
+            };
+    
+            requestAnimationFrame(animateScroll);
+        };
+    
+        setTimeout(restoreScroll, 50);
+    }, [messages]);
+    
+    
+   
+    
+    
+    // ✅ Save Scroll Position & Whether User Was At Bottom
+    useEffect(() => {
+        const saveScroll = () => {
+            if (!chatContainerRef.current) return;
+            const container = chatContainerRef.current;
+            const scrollTop = container.scrollTop;
+    
+            // 🔥 NEW: Save if user was actually at the bottom
+            const isUserAtBottom = scrollTop + container.clientHeight >= container.scrollHeight - 10;
+            localStorage.setItem(`wasAtBottom-${currentChat._id}`, isUserAtBottom.toString());
+    
+            localStorage.setItem(`scrollPosition-${currentChat._id}`, scrollTop);
+        };
+    
+        return () => saveScroll();
+    }, [currentChat]);
+    
+    
+    
+    
+    
+    
+    
+    // Detect if user is at the bottom
+    useEffect(() => {
+        const handleScroll = () => {
+            const container = chatContainerRef.current;
+            if (!container) return;
+    
+            const scrollTop = container.scrollTop;
+            
+            localStorage.setItem(`scrollPosition-${currentChat._id}`, scrollTop);
+            
+            // Detect if user is at bottom
+            const nearBottom = scrollTop + container.clientHeight >= container.scrollHeight - 50;
+            setIsAtBottom(nearBottom);
+        };
+    
+        const chatContainer = chatContainerRef.current;
+        chatContainer?.addEventListener("scroll", handleScroll);
+    
+        return () => chatContainer?.removeEventListener("scroll", handleScroll);
+    }, [currentChat]);
+    
+    
+
+    
+
+    // Replying Function
+    const handleReply = (messageId, message, sender) => {
+        const trimmedMessage = message.length > 150 ? message.substring(0, 100) + "..." : message;
+        setAReplyMessage({ messageId, messageText: trimmedMessage, sender: sender });
+        setReplyMessage(messageId); // Set the reply message
+    }
+    const cancelReply = () => {
+        setReplyMessage(null); // Clear reply
+        setAReplyMessage(null)
+    };
 
 
     // Typing Events
@@ -52,13 +161,19 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
                     from: currentUser._id,
                     to: currentChat._id,
                 });
-    
-                // Store messages with fixed timestamps
-                const fixedMessages = response.data.map(msg => ({
-                    ...msg,
-                    fixedCreatedAt: msg.createdAt // Store original createdAt as fixed
-                }));
                 
+                // Store messages with fixed timestamps
+                const fixedMessages = response.data.map(msg => {
+                    const trimmedReply = msg.replyTo && msg.replyTo.message 
+                        ? msg.replyTo.message.substring(0, 100) + (msg.replyTo.message.length > 150 ? "..." : "")
+                        : null;
+                
+                    return {
+                        ...msg,
+                        replyTo: msg.replyTo ? { ...msg.replyTo, message: trimmedReply } : null,
+                        fixedCreatedAt: msg.createdAt, // Store original createdAt as fixed
+                    };
+                });                
     
                 setMessages(fixedMessages);
                 setLoading(false);
@@ -104,65 +219,94 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
     
 
     // Handle sending messages
-    const handleSendMsg = async (msg) => {
+    const handleSendMsg = async (msg, replyTo = null) => { 
         if (!msg.trim()) return;
     
-        // ✅ 1. Instantly update UI for sender
+        const tempId = Date.now().toString(); // Temporary ID
+    
+        // ✅ 1. Instantly update UI with temp message
         const newMessage = { 
             fromSelf: true, 
             message: msg, 
-            createdAt: new Date().toISOString() 
+            createdAt: new Date().toISOString(),
+            replyTo: aReplyMessage ? { message: aReplyMessage.messageText, messageId: aReplyMessage.messageId || tempId } : null,
+            messageId: tempId, // Assign temporary ID
+            isTemporary: true, // Flag to track temp messages
         };
         setMessages((prev) => [...prev, newMessage]);
     
         try {
-            // ✅ 2. Send message to the server
-            await axios.post(sendMessageRoute, {
+            // ✅ 2. Send to server and wait for DB response
+            const { data } = await axios.post(sendMessageRoute, {
                 from: currentUser._id,
                 to: currentChat._id,
                 message: msg,
+                replyTo: aReplyMessage ? aReplyMessage.messageId : null,
             });
     
-            // ✅ 3. Emit message via socket (receiver will get this)
+            // ✅ 3. Replace temp message with real messageId
+            setMessages((prev) => 
+                prev.map(m => m.messageId === tempId 
+                    ? { ...m, messageId: data._id, isTemporary: false,} // Update message with DB ID
+                    : m
+                )
+            );
+            
+            // ✅ 4. Emit to socket with real messageId
             socket.current.emit("send-msg", {
                 from: currentUser._id,
                 to: currentChat._id,
                 message: msg,
+                replyTo: aReplyMessage 
+                        ? { 
+                            message: aReplyMessage.messageText, 
+                            sender: aReplyMessage.sender
+                         } 
+                        : null, // ✅ Ensure replyTo includes the sender
+                messageId: data._id, // Use real ID from DB
             });
     
         } catch (error) {
             console.error("Error sending message:", error);
         }
-    };
+    };    
+    
     
     // Listen for incoming messages
     useEffect(() => {
         if (socket.current && currentChat) {
             const handleMessageReceive = (msg) => {
                 if (msg.from === currentChat._id) {
-                    setArrivalMessage({ fromSelf: false, message: msg.message, createdAt: msg.createdAt || new Date().toISOString() });                }
+                    setArrivalMessage({ 
+                         fromSelf: false,
+                         message: msg.message,
+                         replyTo: msg.replyTo 
+                         ? { message: msg.replyTo.message, sender: msg.replyTo.sender } 
+                         : null, // ✅ Ensure replyTo has sender
+                         id: msg.messageId ? msg.messageId : null,
+                         createdAt: msg.createdAt || new Date().toISOString() });
+                }
             };
 
             socket.current.on("msg-receive", handleMessageReceive);
             return () => socket.current.off("msg-receive", handleMessageReceive);
         }
-    }, [currentChat]);
+    }, [currentChat, socket.current]);
 
     // Add arrivalMessage to messages
     useEffect(() => {
         arrivalMessage && setMessages((prev) => [...prev, arrivalMessage]);
     }, [arrivalMessage]);
 
-    // Auto-scroll to the latest message
-    useEffect(() => {
-        scrollRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
 
     const isOnlyEmojis = (message) => {
+        if (!message) return false; // Handle empty messages
+        if (!isNaN(message.charAt(0))) return false; // If first character is a number, return false
+    
         const emojiRegex = /^(\p{Emoji}|\s)+$/u;
         return emojiRegex.test(message);
-    };    
-
+    };
+     // 🟢 When a message is sent, always scroll to bottom
     return (
         <Container>
             <div className="chat-header">
@@ -185,7 +329,7 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
                 <ClearChat currentChat={currentChat} getClearMessageRoute={getClearMessageRoute} currentUser={currentUser} setMessages={setMessages}/>
                 <Logout socket={socket} />
             </div>
-            <div className="chat-messages">
+            <div className="chat-messages" ref={chatContainerRef}>
                 {loading ? (
                     <div className="loading-text"><p>Loading messages...</p></div>
                 ) : messages.length === 0 ? (
@@ -199,18 +343,38 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
                         lastDate = messageDate;
 
                         return (
-                        <div key={message._id || uuidv4()} ref={scrollRef}>
+                            <div 
+                                key={message._id || index} 
+                                ref={index === messages.length - 1 ? scrollRef : null}
+                            >
                             {/* Show Date Header */}
                             {showDate && (
                             <div className="date-separator">
                                 <p>{moment(message.createdAt).format("LL")}</p>
                             </div>
                             )}
-
                             {/* Chat Message */}
                             <div className={`message ${message.fromSelf ? "sended" : "received"}`}>
                                 <div className={`content ${isOnlyEmojis(message.message) ? "emoji-only" : ""}`}>
+                            {/* ✅ If it's a reply, show the original message */}
+                                    {message.replyTo && (
+                                        <div className={`replied-message ${message.replyTo.sender === currentUser._id ? "You" : "Other"}`}>
+                                            <small className="reply-sender">
+                                                {message.replyTo.sender === currentUser._id ? "You" : currentChat.username}
+                                            </small>
+                                            <p className={`reply-text`}>
+                                                {message.replyTo.message}
+                                            </p>
+                                        </div>
+                                    )}
                                     <p>{message.message}</p>
+                                    {message.fromSelf ? (
+                                        null
+                                    ) : (
+                                        <button onClick={() => handleReply(message.id, message.message, currentChat._id)}>Reply</button>
+                                    )}
+
+                                    
                                     <span className="message-time">
                                     {moment(message.createdAt || new Date()).format("hh:mm A")}
                                     </span>
@@ -222,7 +386,14 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
                     })()
                 )}
                 </div>
-            <ChatInput handleSendMsg={handleSendMsg} socket={socket} currentChat={currentChat} currentUser={currentUser} isTyping={isTyping}/>
+            <ChatInput handleSendMsg={handleSendMsg}
+                       socket={socket}
+                       currentChat={currentChat}
+                       currentUser={currentUser}
+                       isTyping={isTyping}
+                       replyMessage={replyMessage}
+                       cancelReply={cancelReply}
+                       aReplyMessage={aReplyMessage ? aReplyMessage.messageText : ""}/>
         </Container>
     );
 }
@@ -233,6 +404,50 @@ const Container = styled.div`
         font-size: 12px;
         font-family: "Josefin Sans", serif;
     }
+    .replied-message {
+        display: flex;
+        flex-direction: column;
+        max-width: 100%;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        margin-bottom: 5px;
+        position: relative;
+        background-color: rgba(255, 255, 255, 0.1); /* Light overlay */
+        border-left: 4px solid #007bff; /* Default left border */
+    }
+    
+    /* Sent messages (You) */
+    .replied-message.Other {
+        justify-content: flex-end;
+        background-color: rgba(255, 0, 0, 0.3); /* Light overlay */
+        border-left-color: #ffffff; /* White left border */
+    }
+    
+    /* Received messages (Other) */
+    .replied-message.You {
+        align-self: flex-end;
+        background-color: rgba(0, 0, 0, 0.4);
+        border-left-color: black; /* Blue left border */
+    }
+    
+    /* Sender name */
+    .reply-sender {
+        font-size: 12px;
+        font-weight: bold;
+        margin-bottom: 2px;
+        color: #ffffffb3;
+    }
+    
+    /* Reply message text */
+    .reply-text {
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 14px;
+        word-wrap: break-word;
+        color: white;
+    }
+    
     .clear-chat{
         display: flex;
         justify-content: center;
@@ -324,7 +539,6 @@ const Container = styled.div`
             }
             
             .user-status{
-                font-family: 'Noto Color Emoji', sans-serif;
                 user-select: none;
             }
         }
@@ -357,8 +571,6 @@ const Container = styled.div`
         .message {
             display: flex;
             align-items: center;
-            font-family: 'Noto Color Emoji', sans-serif;
-
             .content {
                 max-width: 40%;
                 overflow-wrap: break-word;

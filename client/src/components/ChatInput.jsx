@@ -5,11 +5,14 @@ import {IoMdSend} from "react-icons/io";
 
 
 
-export default function ChatInput({handleSendMsg, socket, currentChat, currentUser, isTyping}){
+export default function ChatInput({handleSendMsg, socket, currentChat, currentUser, isTyping, replyMessage, cancelReply, aReplyMessage}){
     const [msg, setMsg] = useState("");
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const pickerRef = useRef(null);
 
+    useEffect(()=>{
+        cancelReply();
+    }, [currentChat])
     const faceEmojis = [
         "😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆", "😇", "😉", "😊", "🙂", "🙃", "😋", "😎", "😍", "😘",
         "😗", "😙", "😚", "🤩", "🥳", "😏", "😶", "😐", "😑", "😬", "🙄", "😮", "🤔", "🤨", "😤", "😠", "😡",
@@ -80,11 +83,13 @@ export default function ChatInput({handleSendMsg, socket, currentChat, currentUs
     const handleOnEmojiClick = (emojiObject) => {
         setMsg((prevMsg) => prevMsg + emojiObject.emoji);
     };
-
+    
     const sendChat = (event) => {
         event.preventDefault();
         if(msg.length > 0){
-            handleSendMsg(msg);
+            console.log(replyMessage);
+            handleSendMsg(msg, replyMessage);
+            cancelReply();
             setMsg('');
             socket.current.emit("stop-typing", { senderId: currentUser._id, receiverId: currentChat._id });
             clearTimeout(typingTimeoutRef);
@@ -93,8 +98,14 @@ export default function ChatInput({handleSendMsg, socket, currentChat, currentUs
     return (
         <Container>
         {/* Typing indicator */}
-        {console.log()}
         {isTyping && <TypingIndicator>{currentChat.username} is typing...</TypingIndicator>}
+        {aReplyMessage && (
+            <div className="reply-container">
+                <p>Replying to: {aReplyMessage}</p>
+                <button onClick={cancelReply}>Cancel</button>
+            </div>
+        )}
+
         <div className="button-container">
             <div className="emoji" ref={pickerRef}>
                 <p onClick={handleEmojiPickerHideShow}>{randomEmoji}</p>
@@ -144,6 +155,17 @@ padding: 0 2rem;
 padding-bottom: 0.3rem;
 border-bottom-right-radius: 2rem;
 position: relative;
+.reply-container{
+    position: absolute;
+    top: -50px;
+    color: #c7c5c5;
+    background-color: #333;
+    padding: 1rem;
+    border-radius: 5rem;
+    left: 12px;
+    font-size: 14px;
+    opacity: 1;
+}
 .button-container{
     display: flex;
     align-items: center;
@@ -153,7 +175,6 @@ position: relative;
         position: relative;
         user-select: none;
         p{
-            font-family: 'Noto Color Emoji', sans-serif;
             font-size: 2rem;
             cursor: pointer;
         }
@@ -187,7 +208,6 @@ position: relative;
         width: 90%;
         background-color: transparent;
         color: white;
-        font-family: 'Noto Color Emoji', sans-serif;
         border: none;
         padding-left: 1rem;
         font-size: 1.2rem;

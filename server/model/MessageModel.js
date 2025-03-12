@@ -15,6 +15,11 @@ const messageSchema = new mongoose.Schema(
             required: true,
 
         },
+        replyTo: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Messages",
+            default: null, // If it's a reply, it will store the original message ID
+        },
     },
     {
         timestamps: true,
