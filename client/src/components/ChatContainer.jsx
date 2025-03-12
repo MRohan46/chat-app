@@ -1,4 +1,4 @@
-import axios from "axios";
+﻿import axios from "axios";
 import { sendMessageRoute, getMessageRoute, getClearMessageRoute } from "../utils/APIRoutes";
 import React, { useEffect, useState, useRef } from "react";
 import styled from "styled-components";
@@ -274,7 +274,8 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
                         : null, // ✅ Ensure replyTo includes the sender
                 messageId: data._id, // Use real ID from DB
             });
-    
+    	const container = chatContainerRef.current;
+	container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
         } catch (error) {
             console.error("Error sending message:", error);
         }
