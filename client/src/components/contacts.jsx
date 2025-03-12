@@ -67,11 +67,17 @@ export default function Contacts({ contacts, currentUser, changeChat, socket }) 
         changeChat(contact);
     };
     // Filter contacts based on search input
-    const filteredContacts = searchQuery.trim()
-    ? contacts.filter((contact) =>
-          contact.username.toLowerCase().includes(searchQuery.trim().toLowerCase())
-      )
-    : contacts; // Show all contacts if search is empty
+    const filteredContacts = Array.isArray(contacts)
+      ? searchQuery.trim()
+        ? contacts.filter((contact) =>
+            contact.username?.toLowerCase().includes(searchQuery.trim().toLowerCase())
+          )
+        : contacts
+      : []; // Ensure filteredContacts is always an array
+
+    console.log("Contacts:", contacts);
+    console.log("Filtered Contacts:", filteredContacts);
+
     
     return (
         <>
@@ -99,30 +105,37 @@ export default function Contacts({ contacts, currentUser, changeChat, socket }) 
                           </div>
                         </div>
                         <div className="contacts">
-                            {
-                            isLoading ? (<p>Loading contacts...</p>) :
-                            filteredContacts.length === 0 ? (<p className="user-not-found">No users found.</p>) :
-
+                        {
+                          isLoading ? (
+                            <p>Loading contacts...</p>
+                          ) : !Array.isArray(filteredContacts) ? (
+                            <p className="user-not-found">Error: Contacts data is not an array.</p>
+                          ) : filteredContacts.length === 0 ? (
+                            <p className="user-not-found">No users found.</p>
+                          ) : (
                             filteredContacts.map((contact, index) => {
-                                const status = contactStatuses[contact._id] || "🔘"; // Default to offline
-                                return (
-                                    <div
-                                        className={`contact ${index === currentSelected ? "selected" : ""}`}
-                                        key={index}
-                                        onClick={() => changeCurrentChat(index, contact)}
-                                    >
-                                        <div className="avatar">
-                                            <img src={`data:image/svg+xml;base64,${contact.avatarImage}`} alt="avatar" />
-                                        </div>
-                                        <div className="username">
-                                          <h3>{contact.username}</h3> 
-                                        </div>
-                                        <div className="user-status">
-                                          <h3>{status}</h3> 
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                              const status = contactStatuses[contact._id] || "🔘"; // Default to offline
+                              return (
+                                <div
+                                  className={`contact ${index === currentSelected ? "selected" : ""}`}
+                                  key={index}
+                                  onClick={() => changeCurrentChat(index, contact)}
+                                >
+                                  <div className="avatar">
+                                    <img src={`data:image/svg+xml;base64,${contact.avatarImage}`} alt="avatar" />
+                                  </div>
+                                  <div className="username">
+                                    <h3>{contact.username}</h3> 
+                                  </div>
+                                  <div className="user-status">
+                                    <h3>{status}</h3> 
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )
+                        }
+
                         </div>
                         <div className="current-user">
                             <div className="avatar">
