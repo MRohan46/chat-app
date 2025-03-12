@@ -75,10 +75,6 @@ export default function Contacts({ contacts, currentUser, changeChat, socket }) 
         : contacts
       : []; // Ensure filteredContacts is always an array
 
-    console.log("Contacts:", contacts);
-    console.log("Filtered Contacts:", filteredContacts);
-
-    
     return (
         <>
             {isLoading ? (

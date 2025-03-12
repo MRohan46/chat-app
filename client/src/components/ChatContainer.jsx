@@ -35,35 +35,44 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
  
     useEffect(() => {
         const restoreScroll = () => {
-            const savedScroll = localStorage.getItem(`scrollPosition-${currentChat._id}`);
             const container = chatContainerRef.current;
-            if (!container || savedScroll === null) return;
+            if (!container) return;
     
-            const scrollTarget = parseInt(savedScroll, 10);
+            const savedScroll = localStorage.getItem(`scrollPosition-${currentChat._id}`);
+            const wasAtBottom = localStorage.getItem(`wasAtBottom-${currentChat._id}`) === "true";
     
-            let start = container.scrollTop;
-            let duration = 300; // 0.3s
-            let startTime = performance.now();
+            if (wasAtBottom) {
+                // 🔥 Smooth Scroll to Bottom
+                container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+            } else if (savedScroll !== null) {
+                // 🔵 Restore previous position smoothly
+                const scrollTarget = parseInt(savedScroll, 10);
     
-            const animateScroll = (timestamp) => {
-                let elapsed = timestamp - startTime;
-                let progress = Math.min(elapsed / duration, 1);
-                let easeProgress = progress < 0.5 
-                    ? 2 * progress * progress 
-                    : 1 - Math.pow(-2 * progress + 2, 2) / 2; // Ease-in-out effect
-                
-                container.scrollTop = start + (scrollTarget - start) * easeProgress;
+                let start = container.scrollTop;
+                let duration = 300; // 0.3s animation
+                let startTime = performance.now();
     
-                if (progress < 1) {
-                    requestAnimationFrame(animateScroll);
-                }
-            };
+                const animateScroll = (timestamp) => {
+                    let elapsed = timestamp - startTime;
+                    let progress = Math.min(elapsed / duration, 1);
+                    let easeProgress = progress < 0.5 
+                        ? 2 * progress * progress 
+                        : 1 - Math.pow(-2 * progress + 2, 2) / 2; // Ease-in-out effect
     
-            requestAnimationFrame(animateScroll);
+                    container.scrollTop = start + (scrollTarget - start) * easeProgress;
+    
+                    if (progress < 1) {
+                        requestAnimationFrame(animateScroll);
+                    }
+                };
+    
+                requestAnimationFrame(animateScroll);
+            }
         };
     
         setTimeout(restoreScroll, 50);
-    }, [messages]);
+    }, [messages]); // Runs when messages change
+    
     
     
    
@@ -298,6 +307,7 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
         arrivalMessage && setMessages((prev) => [...prev, arrivalMessage]);
     }, [arrivalMessage]);
 
+   
 
     const isOnlyEmojis = (message) => {
         if (!message) return false; // Handle empty messages

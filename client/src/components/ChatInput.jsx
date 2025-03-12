@@ -87,7 +87,6 @@ export default function ChatInput({handleSendMsg, socket, currentChat, currentUs
     const sendChat = (event) => {
         event.preventDefault();
         if(msg.length > 0){
-            console.log(replyMessage);
             handleSendMsg(msg, replyMessage);
             cancelReply();
             setMsg('');
