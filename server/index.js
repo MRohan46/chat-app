@@ -11,7 +11,7 @@ require("dotenv").config();
 // CORS Middleware
 app.use(
     cors({
-        origin: "https://chatapp-river-waves.vercel.app/", // Allow requests from this origin
+        origin: "https://chatapp-river-waves.vercel.app", // Allow requests from this origin
         credentials: true, // Allow credentials
     })
 );
@@ -40,7 +40,7 @@ const server = app.listen(PORT, () =>
 // Socket.IO Configuration
 const io = socket(server, {
     cors: {
-        origin: "https://chatapp-river-waves.vercel.app/", // Remove the trailing slash
+        origin: "https://chatapp-river-waves.vercel.app", // Remove the trailing slash
         credentials: true,
     },
 });
