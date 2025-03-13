@@ -2,20 +2,24 @@ const CACHE_NAME = "app-cache-v2";
 const urlsToCache = [
   "/",
   "/index.html",
-  "/logo192.png",
-  "/logo512.png",
   "/manifest.json",
-  "/static/js/bundle.js",
-  "/static/css/main.css"
+  "/icon-192x192.png",
+  "/icon-512x512.png",
+  "/static/css/main.css",
+  "/static/js/bundle.js"
 ];
 
 // Install Service Worker and Cache Assets
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(urlsToCache);
-    })
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        return cache.addAll(urlsToCache).catch((error) => {
+          console.error("Failed to cache some files:", error);
+        });
+      })
   );
+  self.skipWaiting(); // Force activation
 });
 
 // Activate Service Worker and Remove Old Cache
@@ -32,6 +36,7 @@ self.addEventListener("activate", (event) => {
       );
     })
   );
+  self.clients.claim(); // Take control of clients immediately
 });
 
 // Fetch Assets from Cache (Offline Support)
