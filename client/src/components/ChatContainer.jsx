@@ -4,25 +4,24 @@ import React, { useEffect, useState, useRef } from "react";
 import styled from "styled-components";
 import Logout from "./Logout";
 import ChatInput from "./ChatInput";
-import { v4 as uuidv4 } from "uuid";
 import ClearChat from "./ClearChat";
 import statusOnline from '../assets/statusOnline.png'
 import statusOffline from '../assets/statusOffline.jpg'
 import moment from "moment";
+import { BiReply } from "react-icons/bi";
 
 export default function ChatContainer({ currentChat, currentUser, socket }) {
+
     const [messages, setMessages] = useState([]);
     const [arrivalMessage, setArrivalMessage] = useState(null);
     const [loading, setLoading] = useState(true);
     const [status, setStatus] = useState(statusOffline);
-    //const [typing, setTyping] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
     const [aReplyMessage, setAReplyMessage] = useState(null);
     const [replyMessage, setReplyMessage] = useState(null);
     const scrollRef = useRef(null);
-    const scrollRef2 = useRef();
     const chatContainerRef = useRef(null);
-    const [isAtBottom, setIsAtBottom] = useState(true);
+    const [showToolTip, setShowToolTip] = useState(false)
     
 
     // Save scroll position when leaving chat
@@ -32,7 +31,7 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
         };
     }, [currentChat]);
 
- 
+    // Restore scroll position when resuming chat
     useEffect(() => {
         const restoreScroll = () => {
             const container = chatContainerRef.current;
@@ -111,9 +110,6 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
             
             localStorage.setItem(`scrollPosition-${currentChat._id}`, scrollTop);
             
-            // Detect if user is at bottom
-            const nearBottom = scrollTop + container.clientHeight >= container.scrollHeight - 50;
-            setIsAtBottom(nearBottom);
         };
     
         const chatContainer = chatContainerRef.current;
@@ -138,7 +134,7 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
     };
 
 
-    // Typing Events
+    // Typing Events (Socket, IsTyping)
     useEffect(() => {
         if (!socket.current || !currentChat) return;
     
@@ -162,7 +158,7 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
 
 
 
-    // Fetch messages when currentChat changes
+    // Fetch messages when currentChat changes 
     useEffect(() => {
         const fetchMessages = async () => {
             if (currentChat) {
@@ -191,11 +187,12 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
         fetchMessages();
     }, [currentChat]);
     
-    
+    // SetLoading True When the Chat Changes
     useEffect(()=>{
         setLoading(true);
     }, [currentChat])
 
+    // Set Online / Offline Status
     useEffect(() => {
         if (!socket.current || !currentChat) return;
     
@@ -206,7 +203,7 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
     
         return () => socket.current.off("online-users"); // Cleanup listener
     }, [currentChat]);
-
+    // Set Polling function to get online users every 15 seconds
     useEffect(() => {
         if (!socket.current || !currentChat) return;
     
@@ -309,7 +306,7 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
     }, [arrivalMessage]);
 
    
-
+    // Handle If is Emojy
     const isOnlyEmojis = (message) => {
         if (!message) return false; // Handle empty messages
         if (!isNaN(message.charAt(0))) return false; // If first character is a number, return false
@@ -317,7 +314,7 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
         const emojiRegex = /^(\p{Emoji}|\s)+$/u;
         return emojiRegex.test(message);
     };
-     // 🟢 When a message is sent, always scroll to bottom
+    
     return (
         <Container>
             <div className="chat-header">
@@ -366,6 +363,19 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
                             )}
                             {/* Chat Message */}
                             <div className={`message ${message.fromSelf ? "sended" : "received"}`}>
+                                {message.fromSelf && (
+                                        <button
+                                            className="reply-button"
+                                            onClick={() => handleReply(message.id, message.message, currentChat._id)}
+                                            onMouseEnter={() => setShowToolTip(true)}
+                                            onMouseLeave={() => setShowToolTip(false)}
+                                        >
+                                            <BiReply className="reply-icon" style={{ transform: "scaleX(-1)" }}/>
+                                            {showToolTip && <span className="tooltip">Reply</span>}
+                                        </button>
+                                    )
+
+                                }
                                 <div className={`content ${isOnlyEmojis(message.message) ? "emoji-only" : ""}`}>
                             {/* ✅ If it's a reply, show the original message */}
                                     {message.replyTo && (
@@ -379,17 +389,23 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
                                         </div>
                                     )}
                                     <p>{message.message}</p>
-                                    {message.fromSelf ? (
-                                        null
-                                    ) : (
-                                        <button onClick={() => handleReply(message.id, message.message, currentChat._id)}>Reply</button>
-                                    )}
-
-                                    
                                     <span className="message-time">
                                     {moment(message.createdAt || new Date()).format("hh:mm A")}
                                     </span>
                                 </div>
+                                {!message.fromSelf && (
+                                    <button
+                                        className="reply-button"
+                                        onClick={() => handleReply(message.id, message.message, currentChat._id)}
+                                        onMouseEnter={() => setShowToolTip(true)}
+                                        onMouseLeave={() => setShowToolTip(false)}
+                                    >
+                                        <BiReply className="reply-icon" />
+                                        {showToolTip && <span className="tooltip">Reply</span>}
+                                    </button>
+                                )
+
+                                }
                             </div>
                         </div>
                         );
@@ -409,8 +425,59 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
     );
 }
 
-// ... styled component (same as before)
 const Container = styled.div`
+    .reply-button {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 18px;
+        padding: 6px;
+        border-radius: 50%;
+        position: relative;
+        transition: background 0.2s ease-in-out;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+
+    .reply-button:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    .reply-icon {
+        border-radius: 50%;
+        background: white;
+        font-size: 20px;
+        color: black;
+        transition: color 0.2s ease-in-out;
+    }
+
+    .reply-button:hover .reply-icon {
+        color: black;
+    }
+
+    .tooltip {
+        position: absolute;
+        bottom: 120%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: black;
+        color: white;
+        font-size: 12px;
+        padding: 4px 6px;
+        border-radius: 4px;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s ease-in-out;
+    }
+
+    .reply-button:hover .tooltip {
+        opacity: 1;
+        visibility: visible;
+    }
+
     .message-time{
         font-size: 12px;
         font-family: "Josefin Sans", serif;
