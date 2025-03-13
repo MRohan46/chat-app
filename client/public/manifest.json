@@ -22,7 +22,7 @@
     {
       "src": "/login-screen.jpeg",
       "type": "image/jpeg",
-      "sizes": "1920x1080"
+      "sizes": "1600x900"
     }
   ],
   "start_url": "/",
