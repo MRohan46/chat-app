@@ -10,27 +10,16 @@ export default function App() {
   const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
-    // Service Worker Registration
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/service-worker.js')
-        .then((registration) => {
-          console.log('Service Worker Registered:', registration);
-        })
-        .catch((error) => {
-          console.log('Service Worker Registration Failed:', error);
-        });
-    }
-
-    // Network Status Listener
+    // ✅ Network Status Listener (Offline Notification)
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, []);
 

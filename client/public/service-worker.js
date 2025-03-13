@@ -1,51 +1,48 @@
-const CACHE_NAME = "app-cache-v2";
-const urlsToCache = [
+const CACHE_NAME = "app-cache-v5";
+const STATIC_FILES = [
   "/",
   "/index.html",
   "/manifest.json",
-  "/icon-192x192.png",
-  "/icon-512x512.png",
-  "/static/css/main.css",
-  "/static/js/bundle.js"
+  "/logo192.png",
+  "/logo512.png"
 ];
 
-// Install Service Worker and Cache Assets
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        return cache.addAll(urlsToCache).catch((error) => {
-          console.error("Failed to cache some files:", error);
-        });
-      })
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(STATIC_FILES);
+    }).catch((error) => console.error("Failed to cache static files:", error))
   );
-  self.skipWaiting(); // Force activation
+  self.skipWaiting();
 });
 
-// Activate Service Worker and Remove Old Cache
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
           if (cache !== CACHE_NAME) {
-            console.log("Deleting old cache:", cache);
             return caches.delete(cache);
           }
         })
       );
     })
   );
-  self.clients.claim(); // Take control of clients immediately
+  self.clients.claim();
 });
 
-// Fetch Assets from Cache (Offline Support)
+// 🔥 Cache dynamic assets like /static/js/main.xxxxx.js
 self.addEventListener("fetch", (event) => {
   event.respondWith(
     caches.match(event.request).then((response) => {
-      return response || fetch(event.request).catch(() => {
-        return caches.match("/index.html"); // Serve fallback page if offline
+      return response || fetch(event.request).then((liveResponse) => {
+        return caches.open(CACHE_NAME).then((cache) => {
+          if (event.request.url.includes("/static/")) {
+            cache.put(event.request, liveResponse.clone()); // Cache dynamic assets
+          }
+          return liveResponse;
+        });
       });
-    })
+    }).catch(() => caches.match("/index.html")) // Fallback to index.html if offline
   );
 });
