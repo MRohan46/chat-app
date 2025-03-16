@@ -1,5 +1,5 @@
 ﻿import axios from "axios";
-import { sendMessageRoute, getMessageRoute, getClearMessageRoute } from "../utils/APIRoutes";
+import { sendMessageRoute, getMessageRoute, getClearMessageRoute, markReadRoute } from "../utils/APIRoutes";
 import React, { useEffect, useState, useRef } from "react";
 import styled from "styled-components";
 import Logout from "./Logout";
@@ -8,7 +8,7 @@ import ClearChat from "./ClearChat";
 import statusOnline from '../assets/statusOnline.png'
 import statusOffline from '../assets/statusOffline.jpg'
 import moment from "moment";
-import { BiReply } from "react-icons/bi";
+import { BiReply, BiCheck, BiCheckDouble } from "react-icons/bi";
 
 export default function ChatContainer({ currentChat, currentUser, socket }) {
 
@@ -22,6 +22,8 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
     const scrollRef = useRef(null);
     const chatContainerRef = useRef(null);
     const [showToolTip, setShowToolTip] = useState(false)
+    const [onlineUsers, setOnlineUsers] = useState([]);
+    const [messageStatus, setMessageStatus] = useState(null);
     
 
     // Save scroll position when leaving chat
@@ -72,11 +74,6 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
         setTimeout(restoreScroll, 50);
     }, [messages]); // Runs when messages change
     
-    
-    
-   
-    
-    
     // ✅ Save Scroll Position & Whether User Was At Bottom
     useEffect(() => {
         const saveScroll = () => {
@@ -93,11 +90,6 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
     
         return () => saveScroll();
     }, [currentChat]);
-    
-    
-    
-    
-    
     
     
     // Detect if user is at the bottom
@@ -172,14 +164,13 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
                     const trimmedReply = msg.replyTo && msg.replyTo.message 
                         ? msg.replyTo.message.substring(0, 100) + (msg.replyTo.message.length > 150 ? "..." : "")
                         : null;
-                
                     return {
                         ...msg,
                         replyTo: msg.replyTo ? { ...msg.replyTo, message: trimmedReply } : null,
+                        status: msg.status,
                         fixedCreatedAt: msg.createdAt, // Store original createdAt as fixed
                     };
                 });                
-    
                 setMessages(fixedMessages);
                 setLoading(false);
             }
@@ -198,6 +189,7 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
     
         socket.current.emit("get-online-users");
         socket.current.on("online-users", (users) => {
+            setOnlineUsers(users);
             users.includes(currentChat._id) ? setStatus(statusOnline) : setStatus(statusOffline);
         });
     
@@ -237,7 +229,8 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
             createdAt: new Date().toISOString(),
             replyTo: aReplyMessage ? { message: aReplyMessage.messageText, messageId: aReplyMessage.messageId || tempId } : null,
             messageId: tempId, // Assign temporary ID
-            isTemporary: true, // Flag to track temp messages
+            isTemporary: true,
+            status: "not_sent" // Flag to track temp messages
         };
         setMessages((prev) => [...prev, newMessage]);
     
@@ -248,15 +241,17 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
                 to: currentChat._id,
                 message: msg,
                 replyTo: aReplyMessage ? aReplyMessage.messageId : null,
+                onlineUsers: onlineUsers,
             });
-    
+            
             // ✅ 3. Replace temp message with real messageId
             setMessages((prev) => 
                 prev.map(m => m.messageId === tempId 
-                    ? { ...m, messageId: data._id, isTemporary: false,} // Update message with DB ID
+                    ? { ...m, messageId: data._id, isTemporary: false, status: data.status,} // Update message with DB ID
                     : m
                 )
             );
+            
             
             // ✅ 4. Emit to socket with real messageId
             socket.current.emit("send-msg", {
@@ -264,20 +259,23 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
                 to: currentChat._id,
                 message: msg,
                 replyTo: aReplyMessage 
-                        ? { 
-                            message: aReplyMessage.messageText, 
-                            sender: aReplyMessage.sender
-                         } 
+                ? { 
+                    message: aReplyMessage.messageText, 
+                    sender: aReplyMessage.sender
+                } 
                         : null, // ✅ Ensure replyTo includes the sender
-                messageId: data._id, // Use real ID from DB
-            });
-    	const container = chatContainerRef.current;
-	container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
-        } catch (error) {
-            console.error("Error sending message:", error);
-        }
-    };    
-    
+                        messageId: data._id, // Use real ID from DB
+                        onlineUsers: onlineUsers.includes(currentChat._id),
+                        status: data.status,
+                    });
+                    
+                    const container = chatContainerRef.current;
+                    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+                } catch (error) {
+                    console.error("Error sending message:", error);
+                }
+            };    
+            
     
     // Listen for incoming messages
     useEffect(() => {
@@ -291,19 +289,39 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
                          ? { message: msg.replyTo.message, sender: msg.replyTo.sender } 
                          : null, // ✅ Ensure replyTo has sender
                          id: msg.messageId ? msg.messageId : null,
-                         createdAt: msg.createdAt || new Date().toISOString() });
+                         createdAt: msg.createdAt || new Date().toISOString(),
+                         status: msg.status,
+                        });
                 }
             };
+            
 
             socket.current.on("msg-receive", handleMessageReceive);
             return () => socket.current.off("msg-receive", handleMessageReceive);
         }
     }, [currentChat, socket.current]);
 
-    // Add arrivalMessage to messages
+
     useEffect(() => {
-        arrivalMessage && setMessages((prev) => [...prev, arrivalMessage]);
-    }, [arrivalMessage]);
+        if (socket.current && currentChat) {
+            const handleMessageReceive = (msg) => {
+                if (msg.status === "sent") {
+    
+                    // ✅ Now update UI (optional: re-fetch messages or update status manually)
+                    setMessages((prevMessages) =>
+                        prevMessages.map((m) =>
+                            m.status === "not_sent" ? { ...m, status: "sent" } : m
+                        )
+                    );
+                }
+            };
+    
+            socket.current.on("msg-receive", handleMessageReceive);
+            return () => socket.current.off("msg-receive", handleMessageReceive);
+        }
+    }, [currentChat, socket.current]);
+    
+    
 
    
     // Handle If is Emojy
@@ -315,6 +333,84 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
         return emojiRegex.test(message);
     };
     
+    useEffect(() => {
+        if (!socket.current || !currentChat) return;
+    
+        // ✅ Function to mark messages as read
+        const markRead = async () => {
+            try {
+                const { data } = await axios.post(markReadRoute, {
+                    userId: currentUser._id,
+                    chatId: currentChat._id
+                });
+    
+                if (data.success) {
+                    // ✅ Update messages to "read" in UI
+                    setMessages((prevMessages) =>
+                        prevMessages.map((msg) =>
+                            msg.status !== "read" ? { ...msg, status: "read" } : msg
+                        )
+                    );
+                    // ✅ Listen for "messages-read" event from the backend
+                    socket.current.emit("messages-reader", {
+                        userId: currentUser._id, 
+                        chatId: currentChat._id,
+                        status: data.status,
+                    });
+
+                }
+            } catch (error) {
+                console.error("❌ Error marking messages as read:", error);
+            }
+        };
+        
+        markRead(); // Run on component mount
+        return () => socket.current.off("messages-reader");
+    
+    }, [currentChat, arrivalMessage]);
+
+    useEffect(() => {
+        if (socket.current) {
+            socket.current.on("messages-sender", (msg) => {
+                if (msg.status !== "read" && msg.from !== currentUser._id) {
+                    // ✅ Show desktop notification
+                    if (Notification.permission === "granted") {
+                        new Notification("New Message", {
+                            body: "message",
+                        });
+                    }
+                }
+    
+                setMessages((prevMessages) =>
+                    prevMessages.map((m) => ({
+                        ...m,
+                        status: msg.status, // 🔥 Only update status
+                    }))
+                );
+            });
+    
+            return () => socket.current.off("messages-sender");
+        }
+    }, []);
+    
+    
+    
+
+    const sendNotification = () =>{
+        if (Notification.permission === "granted") {
+            new Notification("New Message", {
+                body: "You have a new message!",
+            });
+        }
+        
+    }
+
+
+    // Add arrivalMessage to messages
+    useEffect(() => {
+        arrivalMessage && setMessages((prev) => [...prev, arrivalMessage]);
+    }, [arrivalMessage]);
+
     return (
         <Container>
             <div className="chat-header">
@@ -334,6 +430,7 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
                     </div>
                     
                 </div>
+                <button onClick={sendNotification}>Send Notification</button>
                 <ClearChat currentChat={currentChat} getClearMessageRoute={getClearMessageRoute} currentUser={currentUser} setMessages={setMessages}/>
                 <Logout socket={socket} />
             </div>
@@ -389,9 +486,29 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
                                         </div>
                                     )}
                                     <p>{message.message}</p>
-                                    <span className="message-time">
-                                    {moment(message.createdAt || new Date()).format("hh:mm A")}
-                                    </span>
+                                    <div className="status">
+                                        <span className="message-time">
+                                            {moment(message.createdAt || new Date()).format("hh:mm A")}
+                                        </span>
+                                        <p>
+                                            {message.fromSelf && (
+                                                message.status === "sent" ? (
+                                                <span className="sent" title="Sent">
+                                                    <BiCheckDouble />
+                                                </span>
+                                                ) : message.status === "not_sent" ? (
+                                                    <span className="not_sent" title="Not Sent">
+                                                    <BiCheck />
+                                                </span>
+                                                ) : message.status === "read" ? (
+                                                <span className="read" title="Read">
+                                                    <BiCheckDouble />
+                                                </span>
+                                                ) : null
+                                            )}
+                                        </p>
+                                        
+                                    </div>
                                 </div>
                                 {!message.fromSelf && (
                                     <button
@@ -440,7 +557,25 @@ const Container = styled.div`
         justify-content: center;
     }
 
-
+    .status{
+        padding-right: 10px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .status p{
+        padding-left: 5px;
+    }
+    .read{
+        color: Aqua;
+    }
+    .sent{
+        color: black;
+    }
+    .not_sent{
+        color: black;
+    }
     .reply-button:hover {
         background: rgba(255, 255, 255, 0.3);
     }

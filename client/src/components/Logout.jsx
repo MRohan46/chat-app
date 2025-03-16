@@ -8,7 +8,6 @@ export default function Logout({socket}){
     const handleClick = async () => {
         const user = JSON.parse(localStorage.getItem("chat-app-user"));
         if (user) {
-            console.log(user._id)
             socket.current.emit("user-logout", user._id);         
             localStorage.clear();
             navigate("/Login");
