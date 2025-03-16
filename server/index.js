@@ -1,9 +1,12 @@
-const userRoutes = require("./routes/userRoutes");
+﻿const userRoutes = require("./routes/userRoutes");
 const msgRoutes = require("./routes/messagesRoute");
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
+const messageModel = require("./model/MessageModel");
 const socket = require("socket.io");
+//const host = "http://localhost:3000"
+const host = "https://chatapp-river-waves.vercel.app"
 
 
 const app = express();
@@ -12,7 +15,7 @@ require("dotenv").config();
 // CORS Middleware
 app.use(
     cors({
-        origin: "https://chatapp-river-waves.vercel.app", // Allow requests from this origin
+        origin: host, // Allow requests from this origin
         credentials: true, // Allow credentials
     })
 );
@@ -41,18 +44,39 @@ const server = app.listen(PORT, () =>
 // Socket.IO Configuration
 const io = socket(server, {
     cors: {
-        origin: "https://chatapp-river-waves.vercel.app", // Remove the trailing slash
+        origin: host, // Remove the trailing slash
         credentials: true,
     },
 });
 
+
 global.onlineUsers = new Map();
+module.exports = { io,  onlineUsers};
 
 io.on("connection", (socket) => {
     global.chatSocket = socket;
-    socket.on("add-user", (userId) => {
+    socket.on("add-user", async (userId) => {
         onlineUsers.set(userId, socket.id);
+    
+        // ✅ Find messages sent to the user that were "not_sent"
+        const markData = await messageModel.updateMany(
+            { users: userId, status: "not_sent" }, 
+            { $set: { status: "sent" } }
+        );
+    
+    
+        // 🔥 Emit event to the *recipient* who was already online
+        onlineUsers.forEach((socketId, onlineUserId) => {
+            if (onlineUserId !== userId) { // ✅ Send to others, not the logged-in user
+                socket.to(socketId).emit("msg-receive", {
+                    status: "sent",
+                    updatedMessages: markData.modifiedCount, // ✅ Number of messages updated
+                });
+            }
+        });
     });
+    
+
 
     socket.on("disconnect", () => {
         for (let [userId, socketId] of onlineUsers) {
@@ -77,9 +101,25 @@ io.on("connection", (socket) => {
                 ? { message: data.replyTo.message, sender: data.replyTo.sender } 
                 : null, // ✅ Make sure replyTo has both message & sender
                 messageId: data.messageId ? data.messageId : null,
+                status: data.status,
             });
         }
     });
+
+    socket.on("messages-reader", (data) => {
+    
+        const sendUserSocket = onlineUsers.get(data.chatId);
+        if (sendUserSocket) {
+    
+            socket.to(sendUserSocket).emit("messages-sender", {
+                from: data.chatId,
+                status: data.status,
+            });
+        } else {
+        }
+    });
+    
+
     socket.on("get-online-users", () => {
         socket.emit("online-users", Array.from(onlineUsers.keys()));
     });
