@@ -13,9 +13,19 @@ export default function About(){
 
     useEffect(() => {
         const handleLoad = () => setLoading(false);
-        window.addEventListener("load", handleLoad);
-    
-        return () => window.removeEventListener("load", handleLoad);
+        
+        // Run immediately if the DOM is already loaded
+        if (document.readyState === "complete" || document.readyState === "interactive") {
+            handleLoad();
+        } else {
+            window.addEventListener("DOMContentLoaded", handleLoad);
+            window.addEventListener("load", handleLoad); // Fallback for older browsers
+        }
+
+        return () => {
+            window.removeEventListener("DOMContentLoaded", handleLoad);
+            window.removeEventListener("load", handleLoad);
+        };
     }, []);
 
     const toggleMenu = () => {
