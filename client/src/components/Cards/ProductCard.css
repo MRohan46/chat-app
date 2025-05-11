@@ -7,12 +7,6 @@ body {
   padding: 0;
   background-color: #ff6666;
 }
-.container {
-  display: flex;
-  max-width: 1200px;
-  margin: 20px auto;
-  padding: 20px;
-}
 
 .sidebar {
   width: 250px;
