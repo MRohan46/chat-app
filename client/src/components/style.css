@@ -180,18 +180,6 @@ label {
   border: 1px solid #ccc;
   border-radius: 8px;
 }
-.btn {
-  padding: 0.75rem 1.5rem;
-  background-color: #0066ff;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-.btn:hover {
-  background-color: #004ecc;
-}
-
 
 /* Reponsive */
 @media (width < 860px) {
