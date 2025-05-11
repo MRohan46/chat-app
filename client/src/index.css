@@ -1,0 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,100..700;1,100..700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+@font-face {
+  font-family: 'EmojiOnly';
+  src: local('Noto Color Emoji');
+  unicode-range: U+1F600-1F64F, U+1F300-1F5FF, U+1F680-1F6FF, U+1F700-1F77F, U+1F780-1F7FF;
+}
+
+/* Apply fonts globally */
+body, button, input {
+  font-family: "Josefin Sans", 'Noto Color Emoji', sans-serif; 
+}
+
+body {
+    max-width: 100vw;
+    max-height: 100vh;
+    overflow: hidden;
+}
