@@ -1,4 +1,4 @@
-﻿const userRoutes = require("./routes/userRoutes");
+const userRoutes = require("./routes/userRoutes");
 const msgRoutes = require("./routes/messagesRoute");
 const express = require("express");
 const cors = require("cors");
@@ -13,8 +13,12 @@ const app = express();
 require("dotenv").config();
 
 // CORS Middleware
-
-app.use(cors());
+app.use(
+    cors({
+        origin: host, // Allow requests from this origin
+        credentials: true, // Allow credentials
+    })
+);
 
 app.use(express.json());
 
