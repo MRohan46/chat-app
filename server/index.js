@@ -13,9 +13,8 @@ const app = express();
 require("dotenv").config();
 
 // CORS Middleware
-app.use(
-    app.use(cors());
-);
+
+app.use(cors());
 
 app.use(express.json());
 
