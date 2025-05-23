@@ -14,10 +14,7 @@ require("dotenv").config();
 
 // CORS Middleware
 app.use(
-    cors({
-        origin: host, // Allow requests from this origin
-        credentials: true, // Allow credentials
-    })
+    app.use(cors());
 );
 
 app.use(express.json());
