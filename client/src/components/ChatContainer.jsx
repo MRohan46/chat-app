@@ -430,7 +430,6 @@ export default function ChatContainer({ currentChat, currentUser, socket }) {
                     </div>
                     
                 </div>
-                <button onClick={sendNotification}>Send Notification</button>
                 <ClearChat currentChat={currentChat} getClearMessageRoute={getClearMessageRoute} currentUser={currentUser} setMessages={setMessages}/>
                 <Logout socket={socket} />
             </div>
