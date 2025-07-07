@@ -1,11 +1,12 @@
 ﻿const userRoutes = require("./routes/userRoutes");
 const msgRoutes = require("./routes/messagesRoute");
+const trackingRoutes = require("./routes/trackingRoute");
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const messageModel = require("./model/MessageModel");
 const socket = require("socket.io");
-//const host = "http://localhost:3000"
+const host = "http://localhost:3000"
 const fs = require("fs");
 const path = require("path");
 const host = "https://chatapp-river-waves.vercel.app"
@@ -32,6 +33,7 @@ app.use(express.json());
 // Routes
 app.use("/api/auth", userRoutes);
 app.use("/api/messages", msgRoutes);
+app.use("/api/tracking", trackingRoutes);
 
 // Database Connection
 mongoose.connect(process.env.MONGO_URI, {

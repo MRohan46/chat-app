@@ -8,3 +8,4 @@ export const sendMessageRoute = `${host}/api/messages/addMsg`
 export const getMessageRoute = `${host}/api/messages/getMsg`
 export const getClearMessageRoute = `${host}/api/messages/clearMsg`
 export const markReadRoute = `${host}/api/messages/markRead`
+export const trackingRoute = `${host}/api/tracking`
