@@ -10,6 +10,7 @@ import About from './pages/About';
 import Services from './pages/Services';
 import Projects from './pages/Projects';
 import Contact from './pages/Contact'
+import adminDashboard from './pages/admin-dashboard';
 
 export default function App() {
   const [isOnline, setIsOnline] = useState(true);
@@ -42,6 +43,7 @@ export default function App() {
         <Route path='/services' element={<Services />}/>
         <Route path='/projects' element={<Projects />}/>
         <Route path='/contact' element={<Contact />}/>
+        <Route path='/admin/dashboard' element={<adminDashboard />}/>
       </Routes>
     </BrowserRouter>
   );
