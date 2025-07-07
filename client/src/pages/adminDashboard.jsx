@@ -79,7 +79,7 @@ function AdminDashboard() {
       onClick={() => toggleExpand(email)}
       style={{ cursor: "pointer", background: "#f5f5f5", padding: "10px", border: "1px solid #ccc", marginBottom: "5px" }}
     >
-      <strong>{email}</strong> {expandedEmail === email ? "▲" : "▼"}
+      <h3>{email}</h3> {expandedEmail === email ? "▲" : "▼"}
     </div>
     {expandedEmail === email && (
       <div className="email-details">
