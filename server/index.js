@@ -6,7 +6,14 @@ const mongoose = require("mongoose");
 const messageModel = require("./model/MessageModel");
 const socket = require("socket.io");
 //const host = "http://localhost:3000"
+const fs = require("fs");
+const path = require("path");
 const host = "https://chatapp-river-waves.vercel.app"
+const UAParser = require("ua-parser-js");
+const fetch = require("node-fetch");
+const EmailOpen = require("./model/EmailOpenModel");
+const ClickLog = require("./model/ClickLogModel");
+
 
 
 const app = express();
@@ -49,6 +56,52 @@ const io = socket(server, {
     },
 });
 
+
+async function getGeoData(ip) {
+  try {
+    const res = await fetch(`http://ip-api.com/json/${ip}`);
+    const data = await res.json();
+    return {
+      country: data.country,
+      city: data.city,
+      region: data.regionName,
+      org: data.org,
+    };
+  } catch {
+    return {};
+  }
+}
+
+app.get("/track", async (req, res) => {
+  const email = req.query.email;
+  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  const userAgent = req.headers["user-agent"];
+  const parser = new UAParser(userAgent);
+  const emailClient = `${parser.getBrowser().name} - ${parser.getOS().name}`;
+
+  if (email) {
+    const geo = await getGeoData(ip);
+    await EmailOpen.create({ email, ip, userAgent, emailClient, ...geo });
+    console.log(`📩 Opened: ${email} | ${geo.city}, ${geo.country}`);
+  }
+
+  const pixelBuffer = Buffer.from("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==", "base64");
+  res.setHeader("Content-Type", "image/gif");
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  res.send(pixelBuffer);
+});
+
+app.get("/click", async (req, res) => {
+  const { email, url } = req.query;
+  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  if (email && url) {
+    await ClickLog.create({ email, url, ip, clickedAt: new Date() });
+    console.log(`🖱️ Clicked: ${email} → ${url}`);
+  }
+  res.redirect(url);
+});
 
 global.onlineUsers = new Map();
 module.exports = { io,  onlineUsers};
