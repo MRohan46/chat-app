@@ -4,7 +4,7 @@ import Register from './pages/Register';
 import Login from './pages/Login';
 import Chat from './pages/Chat';
 import SetAvatar from './pages/SetAvatar';
-import adminDashboard from './pages/adminDashboard';
+import AdminDashboard from './pages/adminDashboard';
 
 export default function App() {
   const [isOnline, setIsOnline] = useState(true);

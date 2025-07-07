@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-const adminDashboard = () => {
+const AdminDashboard = () => {
   const [dataType, setDataType] = useState("clicks"); // "clicks" or "opens"
   const [sortBy, setSortBy] = useState("time"); // "time" or "alphabet"
   const [clickData, setClickData] = useState([]);
@@ -114,4 +114,4 @@ const adminDashboard = () => {
   );
 };
 
-export default adminDashboard;
+export default AdminDashboard;
