@@ -1,149 +1,117 @@
-// File: src/pages/AdminDashboard.jsx
+import React, { useState, useEffect } from "react";
 
-import React from "react";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+const Dashboard = () => {
+  const [dataType, setDataType] = useState("clicks"); // "clicks" or "opens"
+  const [sortBy, setSortBy] = useState("time"); // "time" or "alphabet"
+  const [clickData, setClickData] = useState([]);
+  const [openData, setOpenData] = useState([]);
 
-const COLORS = ["#5b2be0", "#8b3aff", "#d946ef", "#6366f1"];
+  useEffect(() => {
+    fetch("/api/track/clicks")
+      .then((res) => res.json())
+      .then((data) => setClickData(groupByEmail(data)));
 
-const dummyStats = {
-  totalEmails: 120,
-  opened: 85,
-  clicked: 42,
-  replies: 7,
-};
+    fetch("/api/track/opens")
+      .then((res) => res.json())
+      .then((data) => setOpenData(groupByEmail(data)));
+  }, []);
 
-const dummyOpenData = [
-  { name: "Opened", value: 85 },
-  { name: "Not Opened", value: 35 },
-];
+  const groupByEmail = (entries) => {
+    const map = {};
+    for (let item of entries) {
+      if (!map[item.email]) map[item.email] = [];
+      map[item.email].push(item);
+    }
+    return Object.entries(map).map(([email, logs]) => ({ email, logs }));
+  };
 
-const dummyClickData = [
-  { email: "narutoapps913@gmail.com", clicks: 5 },
-  { email: "support@toolmagic.app", clicks: 3 },
-  { email: "hello@impulze.ai", clicks: 2 },
-];
+  const sortedData = (data) => {
+    return [...data].sort((a, b) => {
+      if (sortBy === "alphabet") return a.email.localeCompare(b.email);
+      return (
+        new Date(b.logs[0].clickedAt || b.logs[0].openedAt) -
+        new Date(a.logs[0].clickedAt || a.logs[0].openedAt)
+      );
+    });
+  };
 
-export default function AdminDashboard() {
   return (
-    <div style={{ padding: "2rem" }}>
-      <h1 style={{ fontSize: "1.75rem", fontWeight: "bold" }}>
-        📊 Email Campaign Dashboard
-      </h1>
+    <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
+      <h2>📊 Email Engagement Dashboard</h2>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-          gap: "1rem",
-          marginTop: "1.5rem",
-        }}
-      >
-        {Object.entries(dummyStats).map(([key, value]) => (
-          <div
-            key={key}
-            style={{
-              padding: "1rem",
-              background: "#f9f9f9",
-              borderRadius: "8px",
-              textAlign: "center",
-            }}
-          >
-            <p style={{ marginBottom: 5 }}>{key}</p>
-            <h2 style={{ fontSize: "1.5rem", fontWeight: "bold" }}>{value}</h2>
-          </div>
-        ))}
+      <div style={{ marginBottom: "20px" }}>
+        <label>
+          Data Type:
+          <select onChange={(e) => setDataType(e.target.value)} value={dataType}>
+            <option value="clicks">Clicks</option>
+            <option value="opens">Opens</option>
+          </select>
+        </label>
+        <label style={{ marginLeft: "20px" }}>
+          Sort By:
+          <select onChange={(e) => setSortBy(e.target.value)} value={sortBy}>
+            <option value="time">Time</option>
+            <option value="alphabet">Alphabetical</option>
+          </select>
+        </label>
       </div>
 
-      {/* Pie Chart */}
-      <div style={{ marginTop: "2rem" }}>
-        <h2>Open Rate</h2>
-        <div style={{ width: "100%", height: 300 }}>
-          <ResponsiveContainer>
-            <PieChart>
-              <Pie
-                data={dummyOpenData}
-                dataKey="value"
-                nameKey="name"
-                outerRadius={100}
-                label
-              >
-                {dummyOpenData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
-                  />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Top Clicked Emails */}
-      <div style={{ marginTop: "2rem" }}>
-        <h2>Top Clicks</h2>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th style={thStyle}>Email</th>
-              <th style={thStyle}>Clicks</th>
-            </tr>
-          </thead>
-          <tbody>
-            {dummyClickData.map((row, i) => (
-              <tr key={i}>
-                <td style={tdStyle}>{row.email}</td>
-                <td style={tdStyle}>{row.clicks}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* All Emails */}
-      <div style={{ marginTop: "2rem" }}>
-        <h2>All Emails</h2>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th style={thStyle}>Email</th>
-              <th style={thStyle}>Status</th>
-              <th style={thStyle}>Opens</th>
-              <th style={thStyle}>Clicks</th>
-              <th style={thStyle}>Replies</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[...Array(10)].map((_, i) => (
-              <tr key={i}>
-                <td style={tdStyle}>test{i}@gmail.com</td>
-                <td style={tdStyle}>{i % 3 === 0 ? "Sent" : "Opened"}</td>
-                <td style={tdStyle}>{Math.floor(Math.random() * 3)}</td>
-                <td style={tdStyle}>{Math.floor(Math.random() * 5)}</td>
-                <td style={tdStyle}>{i % 5 === 0 ? 1 : 0}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <table border="1" cellPadding="10" style={{ borderCollapse: "collapse", width: "100%" }}>
+        <thead>
+          <tr>
+            <th>Email</th>
+            {dataType === "clicks" ? (
+              <>
+                <th>URL</th>
+                <th>IP</th>
+                <th>Location</th>
+                <th>Clicked At</th>
+              </>
+            ) : (
+              <>
+                <th>IP</th>
+                <th>Location</th>
+                <th>Opened At</th>
+                <th>User Agent</th>
+                <th>Email Client</th>
+                <th>Engagement Time (s)</th>
+              </>
+            )}
+          </tr>
+        </thead>
+        <tbody>
+          {sortedData(dataType === "clicks" ? clickData : openData).map((entry, i) => (
+            <React.Fragment key={i}>
+              {entry.logs.map((log, j) => (
+                <tr key={j}>
+                  <td>{entry.email}</td>
+                  {dataType === "clicks" ? (
+                    <>
+                      <td>{log.url}</td>
+                      <td>{log.ip}</td>
+                      <td>{log.location || "-"}</td>
+                      <td>{new Date(log.clickedAt).toLocaleString()}</td>
+                    </>
+                  ) : (
+                    <>
+                      <td>{log.ip}</td>
+                      <td>{log.location || "-"}</td>
+                      <td>{new Date(log.openedAt).toLocaleString()}</td>
+                      <td>{log.userAgent}</td>
+                      <td>{log.emailClient}</td>
+                      <td>
+                        {Math.floor((Date.now() - new Date(log.openedAt)) / 1000)}
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </React.Fragment>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
-}
-
-const thStyle = {
-  textAlign: "left",
-  padding: "0.5rem",
-  borderBottom: "1px solid #ccc",
 };
 
-const tdStyle = {
-  padding: "0.5rem",
-  borderBottom: "1px solid #eee",
-};
+export default Dashboard;
