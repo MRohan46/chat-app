@@ -9,6 +9,7 @@ function AdminDashboard() {
   const [orderBy, setOrderBy] = useState("time");
   const [emailData, setEmailData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
+  const [expandedEmail, setExpandedEmail] = useState(null);
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -46,6 +47,9 @@ function AdminDashboard() {
     setFilteredData(sortedEmails);
   }, [emailData, orderBy]);
 
+  const toggleExpand = (email) => {
+    setExpandedEmail(expandedEmail === email ? null : email);  
+  };
   return (
     <div className="admin-dashboard">
       <h1 className="title">📬 Email Analytics Dashboard</h1>
@@ -69,63 +73,72 @@ function AdminDashboard() {
 
       <div className="results">
         {filteredData.map(([email, records]) => (
-          <div className="email-group" key={email}>
-            <h3>{email}</h3>
-            <table>
-              <thead>
-                <tr>
-                  {dataType === "opens" ? (
-                    <>
-                      <th>IP</th>
-                      <th>Email Client</th>
-                      <th>Opened At</th>
-                      <th>User-Agent</th>
-                      <th>Engagement Time</th>
-                    </>
-                  ) : (
-                    <>
-                      <th>URL</th>
-                      <th>IP</th>
-                      <th>Clicked At</th>
-                      <th>Location</th>
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {records.map((entry, index) => (
-                  <tr key={index}>
-                    {dataType === "opens" ? (
-                      <>
-                        <td>{entry.ip}</td>
-                        <td>{entry.emailClient}</td>
-                        <td>{new Date(entry.openedAt).toLocaleString()}</td>
-                        <td>{entry.userAgent}</td>
-                        <td>
-                          {Math.floor((Date.now() - new Date(entry.openedAt)) / 1000)}s ago
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td>{entry.url}</td>
-                        <td>{entry.ip}</td>
-                        <td>{new Date(entry.clickedAt).toLocaleString()}</td>
-                        <td>
-                          {entry.location ? (
-                            entry.location
-                          ) : (
-                            <LocationFromIP ip={entry.ip} />
-                          )}
-                        </td>
-
-                      </>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ))}
+  <div className="email-group" key={email}>
+    <div
+      className="email-header"
+      onClick={() => toggleExpand(email)}
+      style={{ cursor: "pointer", background: "#f5f5f5", padding: "10px", border: "1px solid #ccc", marginBottom: "5px" }}
+    >
+      <strong>{email}</strong> {expandedEmail === email ? "▲" : "▼"}
+    </div>
+    {expandedEmail === email && (
+      <div className="email-details">
+        <table>
+          <thead>
+            <tr>
+              {dataType === "opens" ? (
+                <>
+                  <th>IP</th>
+                  <th>Email Client</th>
+                  <th>Opened At</th>
+                  <th>User-Agent</th>
+                  <th>Engagement Time</th>
+                </>
+              ) : (
+                <>
+                  <th>URL</th>
+                  <th>IP</th>
+                  <th>Clicked At</th>
+                  <th>Location</th>
+                </>
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {records.map((entry, index) => (
+              <tr key={index}>
+                {dataType === "opens" ? (
+                  <>
+                    <td>{entry.ip}</td>
+                    <td>{entry.emailClient}</td>
+                    <td>{new Date(entry.openedAt).toLocaleString()}</td>
+                    <td>{entry.userAgent}</td>
+                    <td>
+                      {Math.floor((Date.now() - new Date(entry.openedAt)) / 1000)}s ago
+                    </td>
+                  </>
+                ) : (
+                  <>
+                    <td>{entry.url}</td>
+                    <td>{entry.ip}</td>
+                    <td>{new Date(entry.clickedAt).toLocaleString()}</td>
+                    <td>
+                      {entry.location ? (
+                        entry.location
+                      ) : (
+                        <LocationFromIP ip={entry.ip} />
+                      )}
+                    </td>
+                  </>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+))}
       </div>
     </div>
   );
