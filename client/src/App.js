@@ -4,12 +4,6 @@ import Register from './pages/Register';
 import Login from './pages/Login';
 import Chat from './pages/Chat';
 import SetAvatar from './pages/SetAvatar';
-import UserProfile from './pages/UserProfile';
-import Index from './pages/Index';
-import About from './pages/About';
-import Services from './pages/Services';
-import Projects from './pages/Projects';
-import Contact from './pages/Contact'
 import adminDashboard from './pages/admin-dashboard';
 
 export default function App() {
@@ -35,14 +29,8 @@ export default function App() {
       <Routes>
         <Route path='/register' element={<Register />} />
         <Route path='/login' element={<Login />} />
-        <Route path='/Chat' element={<Chat />} />
+        <Route path='/' element={<Chat />} />
         <Route path='/setAvatar' element={<SetAvatar />} />
-        <Route path='/userProfile' element={<UserProfile />} />
-        <Route path='/' element={<Index />} />
-        <Route path='/about' element={<About />} />
-        <Route path='/services' element={<Services />}/>
-        <Route path='/projects' element={<Projects />}/>
-        <Route path='/contact' element={<Contact />}/>
         <Route path='/admin/dashboard' element={<adminDashboard />}/>
       </Routes>
     </BrowserRouter>
