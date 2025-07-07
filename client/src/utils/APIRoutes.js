@@ -1,4 +1,4 @@
-export const host = "https://chat-app-production-river-waves.up.railway.app";
+export const host = "https://river-waves.onrender.com";
 //export const host = "http://localhost:5000";
 export const registerRoute = `${host}/api/auth/register`
 export const loginRoute = `${host}/api/auth/login`
