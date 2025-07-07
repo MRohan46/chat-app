@@ -4,7 +4,7 @@ import Register from './pages/Register';
 import Login from './pages/Login';
 import Chat from './pages/Chat';
 import SetAvatar from './pages/SetAvatar';
-import adminDashboard from './pages/admin-dashboard';
+import adminDashboard from './pages/adminDashboard';
 
 export default function App() {
   const [isOnline, setIsOnline] = useState(true);
@@ -31,7 +31,7 @@ export default function App() {
         <Route path='/login' element={<Login />} />
         <Route path='/' element={<Chat />} />
         <Route path='/setAvatar' element={<SetAvatar />} />
-        <Route path='/admin/dashboard' element={<adminDashboard />}/>
+        <Route path='/admindashboard' element={<adminDashboard />}/>
       </Routes>
     </BrowserRouter>
   );
