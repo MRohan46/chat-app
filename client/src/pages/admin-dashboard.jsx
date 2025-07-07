@@ -1,7 +1,13 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+// File: src/pages/AdminDashboard.jsx
+
+import React from "react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 const COLORS = ["#5b2be0", "#8b3aff", "#d946ef", "#6366f1"];
 
@@ -23,105 +29,121 @@ const dummyClickData = [
   { email: "hello@impulze.ai", clicks: 2 },
 ];
 
-export default function Dashboard() {
+export default function AdminDashboard() {
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">📊 Email Campaign Dashboard</h1>
+    <div style={{ padding: "2rem" }}>
+      <h1 style={{ fontSize: "1.75rem", fontWeight: "bold" }}>
+        📊 Email Campaign Dashboard
+      </h1>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent><p>Total Emails</p><h2 className="text-xl font-semibold">{dummyStats.totalEmails}</h2></CardContent></Card>
-        <Card><CardContent><p>Opened</p><h2 className="text-xl font-semibold">{dummyStats.opened}</h2></CardContent></Card>
-        <Card><CardContent><p>Clicked</p><h2 className="text-xl font-semibold">{dummyStats.clicked}</h2></CardContent></Card>
-        <Card><CardContent><p>Replied</p><h2 className="text-xl font-semibold">{dummyStats.replies}</h2></CardContent></Card>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+          gap: "1rem",
+          marginTop: "1.5rem",
+        }}
+      >
+        {Object.entries(dummyStats).map(([key, value]) => (
+          <div
+            key={key}
+            style={{
+              padding: "1rem",
+              background: "#f9f9f9",
+              borderRadius: "8px",
+              textAlign: "center",
+            }}
+          >
+            <p style={{ marginBottom: 5 }}>{key}</p>
+            <h2 style={{ fontSize: "1.5rem", fontWeight: "bold" }}>{value}</h2>
+          </div>
+        ))}
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="opens">
-        <TabsList className="bg-muted p-2">
-          <TabsTrigger value="opens">Open Rate</TabsTrigger>
-          <TabsTrigger value="clicks">Top Clicks</TabsTrigger>
-          <TabsTrigger value="emails">All Emails</TabsTrigger>
-        </TabsList>
+      {/* Pie Chart */}
+      <div style={{ marginTop: "2rem" }}>
+        <h2>Open Rate</h2>
+        <div style={{ width: "100%", height: 300 }}>
+          <ResponsiveContainer>
+            <PieChart>
+              <Pie
+                data={dummyOpenData}
+                dataKey="value"
+                nameKey="name"
+                outerRadius={100}
+                label
+              >
+                {dummyOpenData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
 
-        {/* Pie Chart for Opens */}
-        <TabsContent value="opens">
-          <Card>
-            <CardContent className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={dummyOpenData}
-                    dataKey="value"
-                    nameKey="name"
-                    outerRadius={100}
-                    label
-                  >
-                    {dummyOpenData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </TabsContent>
+      {/* Top Clicked Emails */}
+      <div style={{ marginTop: "2rem" }}>
+        <h2>Top Clicks</h2>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Email</th>
+              <th style={thStyle}>Clicks</th>
+            </tr>
+          </thead>
+          <tbody>
+            {dummyClickData.map((row, i) => (
+              <tr key={i}>
+                <td style={tdStyle}>{row.email}</td>
+                <td style={tdStyle}>{row.clicks}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-        {/* Top Clicked Emails */}
-        <TabsContent value="clicks">
-          <Card>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Clicks</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {dummyClickData.map((row, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{row.email}</TableCell>
-                      <TableCell>{row.clicks}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* All Email Statuses */}
-        <TabsContent value="emails">
-          <Card>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Opens</TableHead>
-                    <TableHead>Clicks</TableHead>
-                    <TableHead>Replies</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {[...Array(10)].map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell>test{i}@gmail.com</TableCell>
-                      <TableCell>{i % 3 === 0 ? "Sent" : "Opened"}</TableCell>
-                      <TableCell>{Math.floor(Math.random() * 3)}</TableCell>
-                      <TableCell>{Math.floor(Math.random() * 5)}</TableCell>
-                      <TableCell>{i % 5 === 0 ? 1 : 0}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      {/* All Emails */}
+      <div style={{ marginTop: "2rem" }}>
+        <h2>All Emails</h2>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Email</th>
+              <th style={thStyle}>Status</th>
+              <th style={thStyle}>Opens</th>
+              <th style={thStyle}>Clicks</th>
+              <th style={thStyle}>Replies</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...Array(10)].map((_, i) => (
+              <tr key={i}>
+                <td style={tdStyle}>test{i}@gmail.com</td>
+                <td style={tdStyle}>{i % 3 === 0 ? "Sent" : "Opened"}</td>
+                <td style={tdStyle}>{Math.floor(Math.random() * 3)}</td>
+                <td style={tdStyle}>{Math.floor(Math.random() * 5)}</td>
+                <td style={tdStyle}>{i % 5 === 0 ? 1 : 0}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
+
+const thStyle = {
+  textAlign: "left",
+  padding: "0.5rem",
+  borderBottom: "1px solid #ccc",
+};
+
+const tdStyle = {
+  padding: "0.5rem",
+  borderBottom: "1px solid #eee",
+};
